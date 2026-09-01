@@ -66,3 +66,67 @@ The system starts as a modular monolith rather than independently deployed micro
 2. **As a user**, I want selected tickets to be reserved exclusively for a limited time during checkout so that I can complete payment without another buyer taking them.
 3. **As a user**, I want to pay for an active reservation and receive my ticket after successful payment so that I can attend the event.
 4. **As an organizer**, I want to create and publish an event and configure its ticket types, prices, and quantities so that users can discover it and purchase tickets.
+
+## Contract verification — Option B
+
+The project uses **Option B — runtime validation at the API boundary**, not consumer-driven Pact. The NestJS application validates requests and responses against `openapi/openapi.yaml` using `express-openapi-validator` for all five event and reservation operations, with data stored in memory. A global exception filter converts validator errors, malformed JSON, and application exceptions into `application/problem+json`; invalid server responses produce a sanitized `500` problem response. Swagger UI at `/api` and its documentation assets are excluded from API validation. The `Idempotency-Key` header is required by the schema, but replay deduplication and key/body conflict detection are not implemented yet.
+
+## Local setup and startup
+
+### Prerequisites
+
+- Node.js **22.23.2** and npm **10 or later**.
+
+### Install dependencies
+
+```bash
+npm install
+```
+
+### Start in development mode
+
+```bash
+npm run start:dev
+```
+
+### Build and start without watch mode
+
+```bash
+npm run build
+npm start
+```
+
+The default port is **3000**:
+
+- Swagger UI: [http://localhost:3000/api](http://localhost:3000/api)
+- Events endpoint: [http://localhost:3000/events](http://localhost:3000/events)
+- Swagger JSON: [http://localhost:3000/api-json](http://localhost:3000/api-json)
+
+```bash
+curl -i 'http://localhost:3000/events?limit=2'
+```
+
+Expect `200 OK` and a JSON object containing `items` and `next_cursor`. The root path `/` is not an API endpoint.
+
+### Regenerate the OpenAPI contract when needed
+
+Only after intentional Swagger metadata changes:
+
+```bash
+npm run openapi:generate
+npx --no-install redocly lint openapi/openapi.yaml
+npm run test:contract
+```
+
+`openapi:generate` builds the project and overwrites `openapi/openapi.yaml`. Review the YAML diff before accepting the updated contract. This is not a required installation step.
+
+### Available npm scripts
+
+| Command | Purpose |
+| --- | --- |
+| `npm run start:dev` | Compile and run with automatic rebuilds on source changes. |
+| `npm run build` | Compile TypeScript into `dist/`. |
+| `npm start` | Run the previously compiled application. |
+| `npm run typecheck` | Check TypeScript without emitting files. |
+| `npm run test:contract` | Compile and run the contract tests. |
+| `npm run openapi:generate` | Build and regenerate the YAML contract from Swagger metadata. |

@@ -1,0 +1,16 @@
+{
+  "compilerOptions": {
+    "target": "es2022",
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "allowSyntheticDefaultImports": true,
+    "strict": true,
+    "skipLibCheck": true,
+    "outDir": "./dist",
+    "rootDir": "."
+  },
+  "include": ["main.ts", "generate-openapi.ts", "openapi.ts", "app.module.ts", "events/**/*.ts", "reservations/**/*.ts"],
+  "exclude": ["node_modules", "dist"]
+}

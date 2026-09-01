@@ -1,0 +1,308 @@
+openapi: 3.0.0
+paths:
+  /events:
+    get:
+      operationId: EventsController_findAll
+      parameters:
+        - name: limit
+          required: false
+          in: query
+          description: Maximum number of events per page; events are ordered by id ascending
+          schema:
+            minimum: 1
+            maximum: 100
+            default: 20
+            type: integer
+        - name: cursor
+          required: false
+          in: query
+          description: Opaque pagination token returned as next_cursor by the previous
+            response
+          schema:
+            minLength: 1
+            maxLength: 512
+            type: string
+      responses:
+        "200":
+          description: Page of events
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EventsPageResponseDto"
+        "400":
+          description: Invalid limit or pagination cursor
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "500": &a1
+          description: Unexpected server error or response that violates the OpenAPI
+            contract
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+      summary: List events
+      tags: &a2
+        - events
+  /events/{id}:
+    get:
+      operationId: EventsController_findOne
+      parameters:
+        - name: id
+          required: true
+          in: path
+          description: Event identifier
+          schema:
+            format: uuid
+            type: string
+      responses:
+        "200":
+          description: Event found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EventResponseDto"
+        "400":
+          description: Invalid request parameters
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "404":
+          description: Event not found
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "500": *a1
+      summary: Get event by ID
+      tags: *a2
+  /reservations:
+    post:
+      operationId: ReservationsController_create
+      parameters:
+        - name: Idempotency-Key
+          required: true
+          in: header
+          description: Repeating a request with the same key and the same body returns the
+            original response without creating another reservation.
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateReservationDto"
+      responses:
+        "201":
+          description: Reservation created successfully
+          headers:
+            Location:
+              description: Relative URL of the created reservation
+              schema:
+                type: string
+                format: uri-reference
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReservationResponseDto"
+        "400":
+          description: Missing Idempotency-Key header or invalid request body
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "409":
+          description: The Idempotency-Key has already been used with a different request
+            body
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "415":
+          description: Request body must use application/json
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "500": &a3
+          description: Unexpected server error or response that violates the OpenAPI
+            contract
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+      summary: Create reservation
+      tags: &a4
+        - reservations
+  /reservations/{id}:
+    get:
+      operationId: ReservationsController_findOne
+      parameters:
+        - name: id
+          required: true
+          in: path
+          description: Reservation identifier
+          schema:
+            format: uuid
+            type: string
+      responses:
+        "200":
+          description: Reservation found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReservationResponseDto"
+        "400": &a5
+          description: Invalid request parameters
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "404":
+          description: Reservation not found
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "500": *a3
+      summary: Get reservation by ID
+      tags: *a4
+    delete:
+      description: Removes the reservation from in-memory storage.
+      operationId: ReservationsController_remove
+      parameters:
+        - name: id
+          required: true
+          in: path
+          description: Reservation identifier
+          schema:
+            format: uuid
+            type: string
+      responses:
+        "204":
+          description: Reservation cancelled; no response body
+        "400": *a5
+        "404":
+          description: Reservation not found
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "500": *a3
+      summary: Cancel reservation
+      tags: *a4
+info:
+  title: Ticketing API
+  description: API for discovering events, reserving ticket inventory, processing
+    payments, and issuing tickets.
+  version: 1.0.0
+  contact: {}
+tags:
+  - name: events
+    description: Event discovery and catalog operations
+  - name: reservations
+    description: Ticket reservation creation and management
+servers:
+  - url: /
+    description: Current origin
+components:
+  schemas:
+    EventResponseDto:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        description:
+          type: string
+          nullable: true
+          example: An evening of live music.
+      required:
+        - id
+        - title
+        - description
+    EventsPageResponseDto:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/EventResponseDto"
+        next_cursor:
+          type: string
+          nullable: true
+          description: Null when there are no more pages
+      required:
+        - items
+        - next_cursor
+    CreateReservationDto:
+      type: object
+      properties:
+        title:
+          type: string
+          description: Reservation title
+          example: Open Air Festival 2026 reservation
+        description:
+          type: string
+          description: Reservation description
+          example: Reservation for an evening of live music.
+      required:
+        - title
+        - description
+    ReservationResponseDto:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Reservation identifier
+          example: 09e7b844-321b-4e54-9d67-ffb37cc0d450
+        title:
+          type: string
+          example: Open Air Festival 2026 reservation
+        description:
+          type: string
+          example: Reservation for an evening of live music.
+      required:
+        - id
+        - title
+        - description
+    Problem:
+      type: object
+      properties:
+        type:
+          type: string
+          format: uri
+          description: URI identifying the problem type
+          example: https://example.com/problems/invalid-cursor
+        title:
+          type: string
+          description: Short summary of the problem type
+          example: Invalid pagination cursor
+        status:
+          type: integer
+          minimum: 400
+          maximum: 599
+          description: HTTP status code of this response
+          example: 400
+        detail:
+          type: string
+          description: Explanation specific to this occurrence of the problem
+          example: The cursor contains an unsupported version.
+        instance:
+          type: string
+          format: uri-reference
+          description: URI reference identifying this occurrence of the problem
+          example: /events?cursor=invalid
+      required:
+        - type
+        - title
+        - status
+        - detail
+        - instance
+security: []
