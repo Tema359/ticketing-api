@@ -79,6 +79,12 @@ test('requires Idempotency-Key and validates request body without coercion', asy
     { title: 'Title' },
     { title: 123, description: 'Description' },
     { title: 'Title', description: null },
+    {
+      title: 'Title',
+      description: 'Description',
+      evil: true,
+      quantity: -5,
+    },
   ]) {
     const problem = await expectProblem(
       await fetch(url, {

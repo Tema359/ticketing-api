@@ -69,7 +69,7 @@ The system starts as a modular monolith rather than independently deployed micro
 
 ## Contract verification — Option B
 
-The project uses **Option B — runtime validation at the API boundary**, not consumer-driven Pact. The NestJS application validates requests and responses against `openapi/openapi.yaml` using `express-openapi-validator` for all five event and reservation operations, with data stored in memory. A global exception filter converts validator errors, malformed JSON, and application exceptions into `application/problem+json`; invalid server responses produce a sanitized `500` problem response. Swagger UI at `/api` and its documentation assets are excluded from API validation. The `Idempotency-Key` header is required by the schema, but replay deduplication and key/body conflict detection are not implemented yet.
+The project uses **Option B — runtime validation at the API boundary**, not consumer-driven Pact. The NestJS application validates requests and responses against `openapi/openapi.yaml` using `express-openapi-validator` for all five event and reservation operations, with data stored in memory. A global exception filter converts validator errors, malformed JSON, and application exceptions into `application/problem+json`; invalid server responses produce a sanitized `500` problem response. Swagger UI at `/api` and its documentation assets are excluded from API validation. For reservation creation, repeating the same `Idempotency-Key` with the same body returns the original `201` response with `Idempotency-Replay: true`, while reusing the key with a different body returns a `422 application/problem+json` response.
 
 ## Local setup and startup
 

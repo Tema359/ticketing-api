@@ -261,6 +261,7 @@ components:
       required:
         - title
         - description
+      additionalProperties: false
     ReservationResponseDto:
       type: object
       properties:

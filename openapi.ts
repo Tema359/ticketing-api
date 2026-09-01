@@ -15,6 +15,12 @@ export function createOpenApiDocument(app: INestApplication) {
     .build();
 
   const document = SwaggerModule.createDocument(app, config, { extraModels: [Problem] });
+
+  const createReservationSchema = document.components?.schemas?.CreateReservationDto;
+  if (createReservationSchema && !('$ref' in createReservationSchema)) {
+    createReservationSchema.additionalProperties = false;
+  }
+
   document.security = [];
   return document;
 }
