@@ -5,7 +5,7 @@ import * as OpenApiValidator from 'express-openapi-validator';
 import { resolve } from 'node:path';
 import { AppModule } from './app.module.js';
 import { ProblemFilter } from './common/filters/problem.filter.js';
-import { createOpenApiDocument } from './openapi.js';
+import { createOpenApiDocument } from './openapi/openapi.js';
 
 export async function createApplication() {
   const app = await NestFactory.create(AppModule, { bodyParser: false });

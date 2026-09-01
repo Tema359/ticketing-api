@@ -9,15 +9,8 @@
     "strict": true,
     "skipLibCheck": true,
     "outDir": "./dist",
-    "rootDir": "."
+    "rootDir": "./src"
   },
-  "include": [
-    "main.ts",
-    "generate-openapi.ts",
-    "openapi.ts",
-    "app.module.ts",
-    "events/**/*.ts",
-    "reservations/**/*.ts"
-  ],
+  "include": ["src/**/*.ts"],
   "exclude": ["node_modules", "dist"]
 }

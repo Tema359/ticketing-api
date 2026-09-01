@@ -1,7 +1,7 @@
 import { mkdir, writeFile } from 'node:fs/promises';
 import { NestFactory } from '@nestjs/core';
 import { stringify } from 'yaml';
-import { AppModule } from './app.module.js';
+import { AppModule } from '../app.module.js';
 import { createOpenApiDocument } from './openapi.js';
 
 async function generateOpenApi(): Promise<void> {

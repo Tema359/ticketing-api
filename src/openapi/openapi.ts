@@ -1,6 +1,6 @@
 import type { INestApplication } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
-import { Problem } from './common/dto/problem.dto.js';
+import { Problem } from '../common/dto/problem.dto.js';
 
 export function createOpenApiDocument(app: INestApplication) {
   const config = new DocumentBuilder()
