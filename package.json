@@ -10,7 +10,7 @@
     "build": "nest build",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "openapi:generate": "npm run build && node dist/generate-openapi.js",
+    "openapi:generate": "npm run build && node dist/openapi/generate-openapi.js",
     "test:contract": "tsc && node --test test/contract.test.mjs",
     "typecheck": "tsc --noEmit"
   },
