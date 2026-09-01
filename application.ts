@@ -11,13 +11,15 @@ export async function createApplication() {
   const app = await NestFactory.create(AppModule, { bodyParser: false });
   app.useGlobalFilters(new ProblemFilter());
   app.use(json());
-  app.use(OpenApiValidator.middleware({
-    apiSpec: resolve('openapi/openapi.yaml'),
-    validateRequests: { coerceTypes: false, allowUnknownQueryParameters: false },
-    validateResponses: { coerceTypes: false },
-    ignoreUndocumented: false,
-    ignorePaths: /^\/api(?:\/|$|-json$|-yaml$)/,
-  }));
+  app.use(
+    OpenApiValidator.middleware({
+      apiSpec: resolve('openapi/openapi.yaml'),
+      validateRequests: { coerceTypes: false, allowUnknownQueryParameters: false },
+      validateResponses: { coerceTypes: false },
+      ignoreUndocumented: false,
+      ignorePaths: /^\/api(?:\/|$|-json$|-yaml$)/,
+    }),
+  );
   SwaggerModule.setup('api', app, () => createOpenApiDocument(app));
   await app.init();
   return app;

@@ -1,4 +1,4 @@
-import { ApiPropertyOptional } from "@nestjs/swagger";
+import { ApiPropertyOptional } from '@nestjs/swagger';
 
 export class GetEventsQueryDto {
   @ApiPropertyOptional({
@@ -14,8 +14,7 @@ export class GetEventsQueryDto {
     type: String,
     minLength: 1,
     maxLength: 512,
-    description:
-      'Opaque pagination token returned as next_cursor by the previous response',
+    description: 'Opaque pagination token returned as next_cursor by the previous response',
   })
   declare cursor?: string;
 }

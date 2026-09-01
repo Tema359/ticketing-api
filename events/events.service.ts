@@ -1,8 +1,4 @@
-import {
-  BadRequestException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { EventsPageResponseDto } from './dto/events-page-response.dto.js';
 import { GetEventsQueryDto } from './dto/get-events-query.dto.js';
 
@@ -40,35 +36,24 @@ export class EventsService {
       typeof rawLimit !== 'number' &&
       (typeof rawLimit !== 'string' || !/^\d+$/.test(rawLimit))
     ) {
-      throw new BadRequestException(
-        'limit must be an integer between 1 and 100',
-      );
+      throw new BadRequestException('limit must be an integer between 1 and 100');
     }
 
     const limit = rawLimit === undefined ? 20 : Number(rawLimit);
     if (!Number.isSafeInteger(limit) || limit < 1 || limit > 100) {
-      throw new BadRequestException(
-        'limit must be an integer between 1 and 100',
-      );
+      throw new BadRequestException('limit must be an integer between 1 and 100');
     }
 
     if (
       query.cursor !== undefined &&
-      (typeof query.cursor !== 'string' ||
-        query.cursor.length === 0 ||
-        query.cursor.length > 512)
+      (typeof query.cursor !== 'string' || query.cursor.length === 0 || query.cursor.length > 512)
     ) {
-      throw new BadRequestException(
-        'cursor must be a non-empty pagination token',
-      );
+      throw new BadRequestException('cursor must be a non-empty pagination token');
     }
 
-    const afterId =
-      query.cursor === undefined ? undefined : this.decodeCursor(query.cursor);
+    const afterId = query.cursor === undefined ? undefined : this.decodeCursor(query.cursor);
     const candidates =
-      afterId === undefined
-        ? this.events
-        : this.events.filter((event) => event.id > afterId);
+      afterId === undefined ? this.events : this.events.filter((event) => event.id > afterId);
     const page = candidates.slice(0, limit + 1);
     const items = page.slice(0, limit);
 
@@ -76,9 +61,9 @@ export class EventsService {
       items,
       next_cursor:
         page.length > limit
-          ? Buffer.from(
-              JSON.stringify({ v: 1, id: items[items.length - 1].id }),
-            ).toString('base64url')
+          ? Buffer.from(JSON.stringify({ v: 1, id: items[items.length - 1].id })).toString(
+              'base64url',
+            )
           : null,
     };
   }
@@ -110,9 +95,7 @@ export class EventsService {
         payload.v !== 1 ||
         !('id' in payload) ||
         typeof payload.id !== 'string' ||
-        !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(
-          payload.id,
-        )
+        !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(payload.id)
       ) {
         throw new Error('Invalid payload');
       }

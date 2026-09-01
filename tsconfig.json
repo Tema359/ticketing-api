@@ -11,6 +11,13 @@
     "outDir": "./dist",
     "rootDir": "."
   },
-  "include": ["main.ts", "generate-openapi.ts", "openapi.ts", "app.module.ts", "events/**/*.ts", "reservations/**/*.ts"],
+  "include": [
+    "main.ts",
+    "generate-openapi.ts",
+    "openapi.ts",
+    "app.module.ts",
+    "events/**/*.ts",
+    "reservations/**/*.ts"
+  ],
   "exclude": ["node_modules", "dist"]
 }

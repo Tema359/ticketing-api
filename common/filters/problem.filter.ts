@@ -10,17 +10,28 @@ export class ProblemFilter implements ExceptionFilter {
     const request = context.getRequest<Request>();
     const response = context.getResponse<Response>();
     const error = exception instanceof Error ? exception : undefined;
-    const rawStatus = exception instanceof HttpException
-      ? exception.getStatus()
-      : error && 'status' in error ? error.status : 500;
-    const status = typeof rawStatus === 'number' && Number.isInteger(rawStatus) &&
-      rawStatus >= 400 && rawStatus <= 599 ? rawStatus : 500;
+    const rawStatus =
+      exception instanceof HttpException
+        ? exception.getStatus()
+        : error && 'status' in error
+          ? error.status
+          : 500;
+    const status =
+      typeof rawStatus === 'number' &&
+      Number.isInteger(rawStatus) &&
+      rawStatus >= 400 &&
+      rawStatus <= 599
+        ? rawStatus
+        : 500;
     const title = STATUS_CODES[status] ?? 'Error';
     const problem: Problem = {
       type: 'about:blank',
       title,
       status,
-      detail: status >= 500 ? 'The server could not produce a valid response.' : error?.message ?? title,
+      detail:
+        status >= 500
+          ? 'The server could not produce a valid response.'
+          : (error?.message ?? title),
       instance: request.originalUrl,
     };
 

@@ -104,6 +104,13 @@ paths:
               schema:
                 type: string
                 format: uri-reference
+            Idempotency-Replay:
+              description: True when the original response is replayed for the same key and
+                body
+              schema:
+                type: string
+                enum:
+                  - "true"
           content:
             application/json:
               schema:
@@ -114,15 +121,15 @@ paths:
             application/problem+json:
               schema:
                 $ref: "#/components/schemas/Problem"
-        "409":
-          description: The Idempotency-Key has already been used with a different request
-            body
+        "415":
+          description: Request body must use application/json
           content:
             application/problem+json:
               schema:
                 $ref: "#/components/schemas/Problem"
-        "415":
-          description: Request body must use application/json
+        "422":
+          description: The Idempotency-Key has already been used with a different request
+            body
           content:
             application/problem+json:
               schema:

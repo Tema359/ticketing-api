@@ -10,7 +10,9 @@ before(async () => {
   await app.listen(0, '127.0.0.1');
   baseUrl = await app.getUrl();
 });
-after(async () => { await app?.close(); });
+after(async () => {
+  await app?.close();
+});
 
 async function expectProblem(response, status) {
   assert.equal(response.status, status);
@@ -40,7 +42,15 @@ test('accepts valid requests and follows the next cursor', async () => {
 });
 
 test('rejects invalid query values and unknown parameters', async () => {
-  for (const query of ['limit=0', 'limit=101', 'limit=1.5', 'limit=abc', 'limit=1&limit=2', 'unexpected=value', 'cursor=invalid']) {
+  for (const query of [
+    'limit=0',
+    'limit=101',
+    'limit=1.5',
+    'limit=abc',
+    'limit=1&limit=2',
+    'unexpected=value',
+    'cursor=invalid',
+  ]) {
     await expectProblem(await fetch(`${baseUrl}/events?${query}`), 400);
   }
 });
@@ -53,16 +63,31 @@ test('rejects invalid UUIDs and translates missing resources into Problem', asyn
 
 test('requires Idempotency-Key and validates request body without coercion', async () => {
   const url = `${baseUrl}/reservations`;
-  const missingHeader = await expectProblem(await fetch(url, {
-    method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ title: 'Title', description: 'Description' }),
-  }), 400);
-  assert.equal(missingHeader.detail, "request/headers must have required property 'idempotency-key'");
-  for (const body of [{ title: 'Title' }, { title: 123, description: 'Description' }, { title: 'Title', description: null }]) {
-    const problem = await expectProblem(await fetch(url, {
-      method: 'POST', headers: { 'Content-Type': 'application/json', 'Idempotency-Key': 'test-key' },
-      body: JSON.stringify(body),
-    }), 400);
+  const missingHeader = await expectProblem(
+    await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title: 'Title', description: 'Description' }),
+    }),
+    400,
+  );
+  assert.equal(
+    missingHeader.detail,
+    "request/headers must have required property 'idempotency-key'",
+  );
+  for (const body of [
+    { title: 'Title' },
+    { title: 123, description: 'Description' },
+    { title: 'Title', description: null },
+  ]) {
+    const problem = await expectProblem(
+      await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Idempotency-Key': 'test-key' },
+        body: JSON.stringify(body),
+      }),
+      400,
+    );
     assert.match(problem.detail, /request\/body/);
     if (!('description' in body)) {
       assert.equal(problem.detail, "request/body must have required property 'description'");
@@ -71,15 +96,20 @@ test('requires Idempotency-Key and validates request body without coercion', asy
 });
 
 test('malformed JSON is returned as Problem', async () => {
-  await expectProblem(await fetch(`${baseUrl}/reservations`, {
-    method: 'POST', headers: { 'Content-Type': 'application/json', 'Idempotency-Key': 'test-key' },
-    body: '{broken',
-  }), 400);
+  await expectProblem(
+    await fetch(`${baseUrl}/reservations`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Idempotency-Key': 'test-key' },
+      body: '{broken',
+    }),
+    400,
+  );
 });
 
 test('creates, reads, and deletes an in-memory reservation', async () => {
   const created = await fetch(`${baseUrl}/reservations`, {
-    method: 'POST', headers: { 'Content-Type': 'application/json', 'Idempotency-Key': 'create-test' },
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Idempotency-Key': 'create-test' },
     body: JSON.stringify({ title: 'Title', description: 'Description' }),
   });
   assert.equal(created.status, 201);
@@ -87,7 +117,10 @@ test('creates, reads, and deletes an in-memory reservation', async () => {
   const reservation = await created.json();
   assert.equal(reservation.title, 'Title');
   assert.equal(reservation.description, 'Description');
-  assert.match(reservation.id, /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
+  assert.match(
+    reservation.id,
+    /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
+  );
   const location = created.headers.get('location');
   assert.equal(location, `/reservations/${reservation.id}`);
   const found = await fetch(`${baseUrl}${location}`);
@@ -96,6 +129,45 @@ test('creates, reads, and deletes an in-memory reservation', async () => {
   const removed = await fetch(`${baseUrl}${location}`, { method: 'DELETE' });
   assert.equal(removed.status, 204);
   await expectProblem(await fetch(`${baseUrl}${location}`), 404);
+});
+
+test('implements the full Idempotency-Key semantics', async () => {
+  const url = `${baseUrl}/reservations`;
+  const headers = {
+    'Content-Type': 'application/json',
+    'Idempotency-Key': 'idempotency-semantics-test',
+  };
+  const body = { title: 'Concert', description: 'Front-row reservation' };
+
+  const created = await fetch(url, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify(body),
+  });
+  assert.equal(created.status, 201);
+  assert.equal(created.headers.get('idempotency-replay'), null);
+  const createdBody = await created.json();
+  const createdLocation = created.headers.get('location');
+
+  const replayed = await fetch(url, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({ description: body.description, title: body.title }),
+  });
+  assert.equal(replayed.status, 201);
+  assert.equal(replayed.headers.get('idempotency-replay'), 'true');
+  assert.equal(replayed.headers.get('location'), createdLocation);
+  assert.deepEqual(await replayed.json(), createdBody);
+
+  const conflict = await expectProblem(
+    await fetch(url, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ title: body.title, description: 'Different body' }),
+    }),
+    422,
+  );
+  assert.equal(conflict.detail, 'Idempotency-Key was already used with a different request body');
 });
 
 test('rejects an invalid server response instead of leaking it to the client', async () => {

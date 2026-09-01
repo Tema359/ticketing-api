@@ -42,15 +42,15 @@ A `Ticket` is the admission credential issued to an attendee after a reservation
 
 The ticketing domain covers all of the required architectural scenarios. The table below maps each requirement to the homework assignment in which it will be implemented.
 
-| Covered | Domain requirement | Where it will be used |
-| :---: | --- | --- |
-| [x] | At least two user roles with different permissions | **HW #24** — resource-level RBAC |
-| [x] | A limited resource that users compete for, such as inventory, seats, or time slots | **HW #14** — transaction under concurrent load |
-| [x] | An operation with an irreversible side effect, such as payment, reservation, or charge | **HW #22** — outbox pattern and idempotency keys |
-| [x] | An event that requires notifying someone | **HW #18** — real-time communication; **HW #19** — message queue |
-| [x] | An entity with files, such as photos, documents, or avatars | **HW #26** — S3 and presigned URLs |
-| [x] | Data that is read frequently and changed rarely | **HW #23** — cache-aside with Redis |
-| [x] | Four to six related entities and at least one complex query | **HW #12–13** — schema, indexes, and N+1 query prevention |
+| Covered | Domain requirement                                                                     | Where it will be used                                            |
+| :-----: | -------------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
+|   [x]   | At least two user roles with different permissions                                     | **HW #24** — resource-level RBAC                                 |
+|   [x]   | A limited resource that users compete for, such as inventory, seats, or time slots     | **HW #14** — transaction under concurrent load                   |
+|   [x]   | An operation with an irreversible side effect, such as payment, reservation, or charge | **HW #22** — outbox pattern and idempotency keys                 |
+|   [x]   | An event that requires notifying someone                                               | **HW #18** — real-time communication; **HW #19** — message queue |
+|   [x]   | An entity with files, such as photos, documents, or avatars                            | **HW #26** — S3 and presigned URLs                               |
+|   [x]   | Data that is read frequently and changed rarely                                        | **HW #23** — cache-aside with Redis                              |
+|   [x]   | Four to six related entities and at least one complex query                            | **HW #12–13** — schema, indexes, and N+1 query prevention        |
 
 ## Architecture decisions
 
@@ -122,11 +122,13 @@ npm run test:contract
 
 ### Available npm scripts
 
-| Command | Purpose |
-| --- | --- |
-| `npm run start:dev` | Compile and run with automatic rebuilds on source changes. |
-| `npm run build` | Compile TypeScript into `dist/`. |
-| `npm start` | Run the previously compiled application. |
-| `npm run typecheck` | Check TypeScript without emitting files. |
-| `npm run test:contract` | Compile and run the contract tests. |
+| Command                    | Purpose                                                       |
+| -------------------------- | ------------------------------------------------------------- |
+| `npm run start:dev`        | Compile and run with automatic rebuilds on source changes.    |
+| `npm run build`            | Compile TypeScript into `dist/`.                              |
+| `npm run format`           | Format supported project files with Prettier.                 |
+| `npm run format:check`     | Check formatting without changing files.                      |
+| `npm start`                | Run the previously compiled application.                      |
+| `npm run typecheck`        | Check TypeScript without emitting files.                      |
+| `npm run test:contract`    | Compile and run the contract tests.                           |
 | `npm run openapi:generate` | Build and regenerate the YAML contract from Swagger metadata. |
