@@ -132,3 +132,6 @@ npm run test:contract
 | `npm run typecheck`        | Check TypeScript without emitting files.                      |
 | `npm run test:contract`    | Compile and run the contract tests.                           |
 | `npm run openapi:generate` | Build and regenerate the YAML contract from Swagger metadata. |
+
+
+### Configuration & Secrets Management
