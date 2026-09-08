@@ -1,7 +1,12 @@
+import { ConfigService } from '@nestjs/config';
 import { createApplication } from './application.js';
+import type { Env } from './config/env.schema.js';
 
 async function bootstrap() {
   const app = await createApplication();
-  await app.listen(process.env.PORT ?? 3000);
+  const config = app.get<ConfigService<Env, true>>(ConfigService);
+  const port = config.get('PORT', { infer: true });
+
+  await app.listen(port);
 }
 await bootstrap();

@@ -75,28 +75,38 @@ The project uses **Option B — runtime validation at the API boundary**, not co
 
 ### Prerequisites
 
-- Node.js **22.23.2** and npm **10 or later**.
+- Docker Engine with Docker Compose.
+- OpenSSL for generating the initial local database password.
 
-### Install dependencies
+Node.js **22.23.2** and npm **10 or later** are only required when running checks directly on the host.
 
-```bash
-npm install
-```
+### Prepare the database secret
 
-### Start in development mode
-
-```bash
-npm run start:dev
-```
-
-### Build and start without watch mode
+Create the ignored password file before the first startup. Do not overwrite it after PostgreSQL has initialized its volume; use `rotate.sh` for subsequent password changes.
 
 ```bash
-npm run build
-npm start
+mkdir -p secrets
+test -f secrets/db_password || openssl rand -hex 32 > secrets/db_password
+chmod 600 secrets/db_password
 ```
 
-The default port is **3000**:
+### Start the application
+
+Docker Compose builds the NestJS image, starts PostgreSQL, waits for its health check, and then starts the API. Source code is mounted by the development override, while the database is persisted in the `pgdata` volume.
+
+```bash
+docker compose up --build -d
+```
+
+Check the container state and application dependencies:
+
+```bash
+docker compose ps
+curl http://localhost:3000/health
+curl http://localhost:3000/health/db
+```
+
+The API uses port **3000**:
 
 - Swagger UI: [http://localhost:3000/api](http://localhost:3000/api)
 - Events endpoint: [http://localhost:3000/events](http://localhost:3000/events)
@@ -107,6 +117,15 @@ curl -i 'http://localhost:3000/events?limit=2'
 ```
 
 Expect `200 OK` and a JSON object containing `items` and `next_cursor`. The root path `/` is not an API endpoint.
+
+### Logs and shutdown
+
+Use Compose to follow application logs and stop the complete stack. `docker compose down` preserves the PostgreSQL volume; add `-v` only when the stored database may be deleted intentionally.
+
+```bash
+docker compose logs -f api
+docker compose down
+```
 
 ### Regenerate the OpenAPI contract when needed
 
@@ -122,16 +141,41 @@ npm run test:contract
 
 ### Available npm scripts
 
-| Command                    | Purpose                                                       |
-| -------------------------- | ------------------------------------------------------------- |
-| `npm run start:dev`        | Compile and run with automatic rebuilds on source changes.    |
-| `npm run build`            | Compile TypeScript into `dist/`.                              |
-| `npm run format`           | Format supported project files with Prettier.                 |
-| `npm run format:check`     | Check formatting without changing files.                      |
-| `npm start`                | Run the previously compiled application.                      |
-| `npm run typecheck`        | Check TypeScript without emitting files.                      |
-| `npm run test:contract`    | Compile and run the contract tests.                           |
-| `npm run openapi:generate` | Build and regenerate the YAML contract from Swagger metadata. |
+| Command                    | Purpose                                                        |
+| -------------------------- | -------------------------------------------------------------- |
+| `npm run start:dev`        | Compile and run with automatic rebuilds on source changes.     |
+| `npm run build`            | Compile TypeScript into `dist/`.                               |
+| `npm run check:env`        | Verify that `.env.example` matches the Zod environment schema. |
+| `npm run format`           | Format supported project files with Prettier.                  |
+| `npm run format:check`     | Check formatting without changing files.                       |
+| `npm start`                | Build and run the application without watch mode.              |
+| `npm run typecheck`        | Check TypeScript without emitting files.                       |
+| `npm run test:contract`    | Compile and run the contract tests.                            |
+| `npm run openapi:generate` | Build and regenerate the YAML contract from Swagger metadata.  |
 
+## Configuration
 
-### Configuration & Secrets Management
+All environment variables are validated by the Zod schema in `src/config/env.schema.ts` before the application starts. Invalid values stop the process immediately, while application code accesses validated values through `ConfigService<Env, true>`. `.env.example` is the versioned configuration contract; real `.env` files and the `secrets/` directory are excluded from Git and the Docker build context.
+
+| Variable           | Type and allowed values                | Default               | Purpose                                       |
+| ------------------ | -------------------------------------- | --------------------- | --------------------------------------------- |
+| `NODE_ENV`         | `development`, `test`, or `production` | `development`         | Application runtime environment.              |
+| `PORT`             | Integer from `1` to `65535`            | `3000`                | HTTP port exposed by the API.                 |
+| `DB_URL`           | `postgresql://` URL                    | Required              | Connection URL without a password.            |
+| `DB_PASSWORD_FILE` | Non-empty file path                    | `secrets/db_password` | Password file path, never the password value. |
+
+Run `npm run check:env` after changing the schema or `.env.example`; the command exits with code `1` when their keys differ. The database password is intentionally absent from the environment schema because the application reads it from the file referenced by `DB_PASSWORD_FILE`.
+
+### Rotating the database password
+
+Run `rotate.sh` while the Compose stack is running. It changes the PostgreSQL role password, overwrites the mounted file secret, and terminates old `ticketing` sessions so that `pg.Pool` creates new connections using the updated file. The API container is not restarted, so `uptime_seconds` continues increasing.
+
+```bash
+curl http://localhost:3000/health
+./rotate.sh
+curl http://localhost:3000/health/db
+curl http://localhost:3000/health
+docker inspect --format 'restart-count={{.RestartCount}}' ticketing-api-api-1
+```
+
+The second health request must return `200`, and the restart count must remain `0`. Do not replace the password file manually for an initialized database; use `rotate.sh` so the database role and file stay synchronized.
