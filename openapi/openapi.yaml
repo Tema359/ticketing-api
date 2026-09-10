@@ -1,5 +1,38 @@
 openapi: 3.0.0
 paths:
+  /health:
+    get:
+      operationId: HealthController_checkApplication
+      parameters: []
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthResponseDto"
+      summary: Check application health
+      tags: &a1
+        - health
+  /health/db:
+    get:
+      operationId: HealthController_checkDatabase
+      parameters: []
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DatabaseHealthResponseDto"
+        "500":
+          description: PostgreSQL is unavailable
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+      summary: Check database connectivity
+      tags: *a1
   /events:
     get:
       operationId: EventsController_findAll
@@ -35,7 +68,7 @@ paths:
             application/problem+json:
               schema:
                 $ref: "#/components/schemas/Problem"
-        "500": &a1
+        "500": &a2
           description: Unexpected server error or response that violates the OpenAPI
             contract
           content:
@@ -43,7 +76,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/Problem"
       summary: List events
-      tags: &a2
+      tags: &a3
         - events
   /events/{id}:
     get:
@@ -75,9 +108,9 @@ paths:
             application/problem+json:
               schema:
                 $ref: "#/components/schemas/Problem"
-        "500": *a1
+        "500": *a2
       summary: Get event by ID
-      tags: *a2
+      tags: *a3
   /reservations:
     post:
       operationId: ReservationsController_create
@@ -134,7 +167,7 @@ paths:
             application/problem+json:
               schema:
                 $ref: "#/components/schemas/Problem"
-        "500": &a3
+        "500": &a4
           description: Unexpected server error or response that violates the OpenAPI
             contract
           content:
@@ -142,7 +175,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/Problem"
       summary: Create reservation
-      tags: &a4
+      tags: &a5
         - reservations
   /reservations/{id}:
     get:
@@ -162,7 +195,7 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ReservationResponseDto"
-        "400": &a5
+        "400": &a6
           description: Invalid request parameters
           content:
             application/problem+json:
@@ -174,9 +207,9 @@ paths:
             application/problem+json:
               schema:
                 $ref: "#/components/schemas/Problem"
-        "500": *a3
+        "500": *a4
       summary: Get reservation by ID
-      tags: *a4
+      tags: *a5
     delete:
       description: Removes the reservation from in-memory storage.
       operationId: ReservationsController_remove
@@ -191,16 +224,16 @@ paths:
       responses:
         "204":
           description: Reservation cancelled; no response body
-        "400": *a5
+        "400": *a6
         "404":
           description: Reservation not found
           content:
             application/problem+json:
               schema:
                 $ref: "#/components/schemas/Problem"
-        "500": *a3
+        "500": *a4
       summary: Cancel reservation
-      tags: *a4
+      tags: *a5
 info:
   title: Ticketing API
   description: API for discovering events, reserving ticket inventory, processing
@@ -212,11 +245,41 @@ tags:
     description: Event discovery and catalog operations
   - name: reservations
     description: Ticket reservation creation and management
+  - name: health
+    description: Service and dependency health checks
 servers:
   - url: /
     description: Current origin
 components:
   schemas:
+    HealthResponseDto:
+      type: object
+      properties:
+        status:
+          type: string
+          example: ok
+        uptime_seconds:
+          type: number
+          minimum: 0
+      required:
+        - status
+        - uptime_seconds
+    DatabaseHealthResponseDto:
+      type: object
+      properties:
+        status:
+          type: string
+          example: ok
+        database_time:
+          type: string
+          format: date-time
+        uptime_seconds:
+          type: number
+          minimum: 0
+      required:
+        - status
+        - database_time
+        - uptime_seconds
     EventResponseDto:
       type: object
       properties:

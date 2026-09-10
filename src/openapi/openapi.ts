@@ -12,6 +12,7 @@ export function createOpenApiDocument(app: INestApplication) {
     .addServer('/', 'Current origin')
     .addTag('events', 'Event discovery and catalog operations')
     .addTag('reservations', 'Ticket reservation creation and management')
+    .addTag('health', 'Service and dependency health checks')
     .build();
 
   const document = SwaggerModule.createDocument(app, config, { extraModels: [Problem] });
