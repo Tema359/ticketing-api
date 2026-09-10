@@ -9,7 +9,7 @@ services:
       DB_URL: postgresql://ticketing@db:5432/ticketing
       DB_PASSWORD_FILE: /run/secrets/db_password
     ports:
-      - '3000:3000'
+      - '${PORT:-3000}:3000'
     secrets:
       - db_password
     depends_on:

@@ -78,7 +78,15 @@ The project uses **Option B — runtime validation at the API boundary**, not co
 - Docker Engine with Docker Compose.
 - OpenSSL for generating the initial local database password.
 
-Node.js **22.23.2** and npm **10 or later** are only required when running checks directly on the host.
+Node.js **22.23.2** and npm **10 or later** are only required when running checks or the API directly on the host.
+
+### Prepare the local environment
+
+Copy the versioned example before running `npm start` or `npm run start:dev` on the host. The resulting `.env` supplies the required `DB_URL`, is ignored by Git, and may be changed for local overrides; Docker Compose supplies its container configuration independently.
+
+```bash
+cp .env.example .env
+```
 
 ### Prepare the database secret
 

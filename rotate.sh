@@ -18,8 +18,11 @@ docker compose exec -T db psql \
   --username "$DATABASE_USER" \
   --dbname "$DATABASE_NAME" \
   --set ON_ERROR_STOP=1 \
-  --command "ALTER ROLE \"$DATABASE_USER\" WITH PASSWORD '$NEW_PASSWORD';" \
-  >/dev/null
+  --variable "role=$DATABASE_USER" \
+  --variable "pw=$NEW_PASSWORD" \
+  >/dev/null <<'SQL'
+ALTER ROLE :"role" WITH PASSWORD :'pw';
+SQL
 
 echo '2. Updating the secret file...'
 umask 077

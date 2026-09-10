@@ -2,8 +2,6 @@ services:
   api:
     build:
       target: builder
-    ports:
-      - '${PORT:-3000}:3000'
     environment:
       NODE_ENV: '${NODE_ENV:-development}'
     volumes:
