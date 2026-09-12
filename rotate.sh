@@ -14,7 +14,7 @@ fi
 NEW_PASSWORD="ticketing-$(openssl rand -hex 16)"
 
 echo '1. Updating the PostgreSQL role password...'
-docker compose exec -T db psql \
+DB_PASSWORD_SECRET_FILE="$SECRET_FILE" docker compose exec -T db psql \
   --username "$DATABASE_USER" \
   --dbname "$DATABASE_NAME" \
   --set ON_ERROR_STOP=1 \
@@ -30,7 +30,7 @@ printf '%s' "$NEW_PASSWORD" > "$SECRET_FILE"
 chmod 600 "$SECRET_FILE"
 
 echo "3. Closing old connections for $DATABASE_USER..."
-docker compose exec -T db psql \
+DB_PASSWORD_SECRET_FILE="$SECRET_FILE" docker compose exec -T db psql \
   --username "$DATABASE_USER" \
   --dbname "$DATABASE_NAME" \
   --tuples-only \

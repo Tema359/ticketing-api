@@ -36,7 +36,7 @@ services:
 
 secrets:
   db_password:
-    file: ./secrets/db_password
+    file: ${DB_PASSWORD_SECRET_FILE:-./secrets/db_password.example}
 
 volumes:
   pgdata:
