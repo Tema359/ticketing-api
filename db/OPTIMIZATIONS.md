@@ -190,4 +190,4 @@ On the same 100,000-event dataset, an equivalent `events` table without `search_
 
 ## Морфологія
 
-Searching the same database with `plainto_tsquery('simple', 'бандури')` returned 2,000 events, while the other grammatical form `plainto_tsquery('simple', 'бандура')` returned 0 events. The counts differ because `simple` lowercases and tokenizes text but does not stem Ukrainian words, and this PostgreSQL installation exposes 29 built-in text search configurations with no Ukrainian configuration.
+Searching the same database with `plainto_tsquery('simple', 'бандури')` returned 2,000 events, while the other grammatical form `plainto_tsquery('simple', 'бандура')` returned 0 events. The counts differ because `simple` lowercases and tokenizes text but does not stem Ukrainian words, and this PostgreSQL installation exposes 29 built-in text search configurations with no Ukrainian configuration. A production-grade next step is a dedicated Ukrainian dictionary or normalization pipeline; `unaccent` can normalize diacritics but does not provide Ukrainian stemming, and substituting an unrelated built-in language configuration would not solve the problem correctly.

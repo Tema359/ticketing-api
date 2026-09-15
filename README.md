@@ -99,6 +99,10 @@ docker compose exec -T db psql -U ticketing -d ticketing -Atc 'SELECT 1'
 The main workload table is `reservations`, and the catalog table searched by `db/queries/q4.sql` is `events`. After applying `db/schema.sql` to a clean database, `db/seed.sql` inserts exactly 100,000 rows into each of these tables and finishes with `VACUUM (ANALYZE)`.
 
 ```bash
+docker compose exec -T db psql -U ticketing -d ticketing -v ON_ERROR_STOP=1 < db/schema.sql
+```
+
+```bash
 docker compose exec -T db psql -U ticketing -d ticketing -v ON_ERROR_STOP=1 < db/seed.sql
 ```
 
