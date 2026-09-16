@@ -181,24 +181,32 @@ npm run test:contract
 
 ### Available npm scripts
 
-| Command                    | Purpose                                                        |
-| -------------------------- | -------------------------------------------------------------- |
-| `npm run start:dev`        | Compile and run with automatic rebuilds on source changes.     |
-| `npm run build`            | Compile TypeScript into `dist/`.                               |
-| `npm run check:env`        | Verify that `.env.example` matches the Zod environment schema. |
-| `npm run format`           | Format supported project files with Prettier.                  |
-| `npm run format:check`     | Check formatting without changing files.                       |
-| `npm start`                | Build and run the application without watch mode.              |
-| `npm run typecheck`        | Check TypeScript without emitting files.                       |
-| `npm run test:contract`    | Compile and run the contract tests.                            |
-| `npm run openapi:generate` | Build and regenerate the YAML contract from Swagger metadata.  |
+| Command                      | Purpose                                                        |
+| ---------------------------- | -------------------------------------------------------------- |
+| `npm run start:dev`          | Compile and run with automatic rebuilds on source changes.     |
+| `npm run build`              | Compile TypeScript into `dist/`.                               |
+| `npm run check:env`          | Verify that `.env.example` matches the Zod environment schema. |
+| `npm run format`             | Format supported project files with Prettier.                  |
+| `npm run format:check`       | Check formatting without changing files.                       |
+| `npm start`                  | Build and run the application without watch mode.              |
+| `npm run typecheck`          | Check TypeScript without emitting files.                       |
+| `npm run test:contract`      | Compile and run the contract tests.                            |
+| `npm run openapi:generate`   | Build and regenerate the YAML contract from Swagger metadata.  |
+| `npm run migration:generate` | Build and generate a migration from entity changes.            |
+| `npm run migration:show`     | Build and show applied and pending TypeORM migrations.         |
+| `npm run migration:run`      | Build and apply pending TypeORM migrations.                    |
+| `npm run migration:revert`   | Build and revert the latest applied TypeORM migration.         |
+
+## TypeORM and migrations
+
+The application and the TypeORM CLI share the `DataSource` configuration in `src/database`, including the password-file callback used for secret rotation. Schema synchronization is permanently disabled: database changes must be represented by versioned migrations, reviewed as SQL, and applied with `npm run migration:run`. Create entities first and then run `npm run migration:generate`; do not generate a migration while the entity list is incomplete, because TypeORM compares the entire mapped model with the current database schema.
 
 ## Configuration
 
 All environment variables are validated by the Zod schema in `src/config/env.schema.ts` before the application starts. Invalid values stop the process immediately, while application code accesses validated values through `ConfigService<Env, true>`. `.env.example` is the versioned configuration contract; real `.env` files and the `secrets/` directory are excluded from Git and the Docker build context.
 
-| Variable           | Type and allowed values                | Default               | Source                                              | Purpose                                       |
-| ------------------ | -------------------------------------- | --------------------- | --------------------------------------------------- | --------------------------------------------- |
+| Variable           | Type and allowed values                | Default               | Source                                             | Purpose                                       |
+| ------------------ | -------------------------------------- | --------------------- | -------------------------------------------------- | --------------------------------------------- |
 | `NODE_ENV`         | `development`, `test`, or `production` | `development`         | Dev/prod environment store; Docker Compose locally | Application runtime environment.              |
 | `PORT`             | Integer from `1` to `65535`            | `3000`                | Dev/prod environment store; Docker Compose locally | HTTP port exposed by the API.                 |
 | `DB_URL`           | `postgresql://` URL                    | Required              | Dev/prod environment store; Docker Compose locally | Connection URL without a password.            |
