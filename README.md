@@ -80,6 +80,37 @@ The project uses **Option B — runtime validation at the API boundary**, not co
 
 Node.js **22.23.2** and npm **10 or later** are only required when running checks or the API directly on the host.
 
+### Database grader quick start
+
+Start PostgreSQL from a fresh clone with the versioned development-only example secret:
+
+```bash
+docker compose up -d --wait db
+```
+
+Connect and verify it in one command:
+
+```bash
+docker compose exec -T db psql -U ticketing -d ticketing -Atc 'SELECT 1'
+```
+
+### Database benchmark dataset
+
+The main workload table is `reservations`, and the catalog table searched by `db/queries/q4.sql` is `events`. After applying `db/schema.sql` to a clean database, `db/seed.sql` inserts exactly 100,000 rows into each of these tables and finishes with `VACUUM (ANALYZE)`.
+
+```bash
+docker compose exec -T db psql -U ticketing -d ticketing -v ON_ERROR_STOP=1 < db/schema.sql
+```
+
+```bash
+docker compose exec -T db psql -U ticketing -d ticketing -v ON_ERROR_STOP=1 < db/seed.sql
+```
+
+```bash
+docker compose exec -T db psql -U ticketing -d ticketing -Atc 'SELECT count(*) FROM reservations;'
+docker compose exec -T db psql -U ticketing -d ticketing -Atc 'SELECT count(*) FROM events;'
+```
+
 ### Prepare the local environment
 
 Copy the versioned example before running `npm start` or `npm run start:dev` on the host. The resulting `.env` supplies the required `DB_URL`, is ignored by Git, and may be changed for local overrides; Docker Compose supplies its container configuration independently.
@@ -90,17 +121,18 @@ cp .env.example .env
 
 ### Prepare the database secret
 
-Create the ignored password file before the first startup. Do not overwrite it after PostgreSQL has initialized its volume; use `rotate.sh` for subsequent password changes.
+The tracked `secrets/db_password.example` contains development-only credentials so the database can start from a fresh clone. For local password rotation, create an ignored managed secret before the first startup and select it through the Compose-only `DB_PASSWORD_SECRET_FILE` variable; do not overwrite it after PostgreSQL has initialized its volume.
 
 ```bash
 mkdir -p secrets
 test -f secrets/db_password || openssl rand -hex 32 > secrets/db_password
 chmod 600 secrets/db_password
+export DB_PASSWORD_SECRET_FILE=./secrets/db_password
 ```
 
 ### Start the application
 
-Docker Compose builds the NestJS image, starts PostgreSQL, waits for its health check, and then starts the API. Source code is mounted by the development override, while the database is persisted in the `pgdata` volume.
+Docker Compose builds the NestJS image, starts PostgreSQL, waits for its health check, and then starts the API. Source code is mounted by the development override, while the database is persisted in the `pgdata` volume. Without `DB_PASSWORD_SECRET_FILE`, Compose uses the tracked development-only example secret.
 
 ```bash
 docker compose up --build -d
@@ -165,18 +197,20 @@ npm run test:contract
 
 All environment variables are validated by the Zod schema in `src/config/env.schema.ts` before the application starts. Invalid values stop the process immediately, while application code accesses validated values through `ConfigService<Env, true>`. `.env.example` is the versioned configuration contract; real `.env` files and the `secrets/` directory are excluded from Git and the Docker build context.
 
-| Variable           | Type and allowed values                | Default               | Purpose                                       |
-| ------------------ | -------------------------------------- | --------------------- | --------------------------------------------- |
-| `NODE_ENV`         | `development`, `test`, or `production` | `development`         | Application runtime environment.              |
-| `PORT`             | Integer from `1` to `65535`            | `3000`                | HTTP port exposed by the API.                 |
-| `DB_URL`           | `postgresql://` URL                    | Required              | Connection URL without a password.            |
-| `DB_PASSWORD_FILE` | Non-empty file path                    | `secrets/db_password` | Password file path, never the password value. |
+| Variable           | Type and allowed values                | Default               | Source                                              | Purpose                                       |
+| ------------------ | -------------------------------------- | --------------------- | --------------------------------------------------- | --------------------------------------------- |
+| `NODE_ENV`         | `development`, `test`, or `production` | `development`         | Dev/prod environment store; Docker Compose locally | Application runtime environment.              |
+| `PORT`             | Integer from `1` to `65535`            | `3000`                | Dev/prod environment store; Docker Compose locally | HTTP port exposed by the API.                 |
+| `DB_URL`           | `postgresql://` URL                    | Required              | Dev/prod environment store; Docker Compose locally | Connection URL without a password.            |
+| `DB_PASSWORD_FILE` | Non-empty file path                    | `secrets/db_password` | Dev/prod environment store; Docker secret locally  | Password file path, never the password value. |
+
+`DB_PASSWORD_SECRET_FILE` is a Docker Compose interpolation variable rather than an application variable, so it is intentionally absent from the Zod schema. It selects the host-side secret source: `secrets/db_password.example` by default for a fresh-clone development database, or ignored `secrets/db_password` for the password-rotation exercise.
 
 Run `npm run check:env` after changing the schema or `.env.example`; the command exits with code `1` when their keys differ. The database password is intentionally absent from the environment schema because the application reads it from the file referenced by `DB_PASSWORD_FILE`.
 
 ### Rotating the database password
 
-Run `rotate.sh` while the Compose stack is running. It changes the PostgreSQL role password, overwrites the mounted file secret, and terminates old `ticketing` sessions so that `pg.Pool` creates new connections using the updated file. The API container is not restarted, so `uptime_seconds` continues increasing.
+Run `rotate.sh` only on a stack initially started with `DB_PASSWORD_SECRET_FILE=./secrets/db_password`. It changes the PostgreSQL role password, overwrites the mounted file secret, and terminates old `ticketing` sessions so that `pg.Pool` creates new connections using the updated file. The API container is not restarted, so `uptime_seconds` continues increasing.
 
 ```bash
 curl http://localhost:3000/health
