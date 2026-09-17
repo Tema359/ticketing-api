@@ -32,7 +32,7 @@ CREATE TABLE events (
     CONSTRAINT events_time_range_valid CHECK (ends_at > starts_at),
     CONSTRAINT events_status_valid CHECK (status IN ('draft', 'published', 'cancelled', 'completed')),
     CONSTRAINT events_organizer_fk
-        FOREIGN KEY (organizer_id) REFERENCES users (id) ON DELETE RESTRICT -- TODO: Add Relation
+        FOREIGN KEY (organizer_id) REFERENCES users (id) ON DELETE RESTRICT
 );
 
 CREATE TABLE ticket_types (

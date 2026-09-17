@@ -71,6 +71,21 @@ The system starts as a modular monolith rather than independently deployed micro
 
 The project uses **Option B — runtime validation at the API boundary**, not consumer-driven Pact. The NestJS application validates requests and responses against `openapi/openapi.yaml` using `express-openapi-validator` for all five event and reservation operations, with data stored in memory. A global exception filter converts validator errors, malformed JSON, and application exceptions into `application/problem+json`; invalid server responses produce a sanitized `500` problem response. Swagger UI at `/api` and its documentation assets are excluded from API validation. For reservation creation, repeating the same `Idempotency-Key` with the same body returns the original `201` response with `Idempotency-Replay: true`, while reusing the key with a different body returns a `422 application/problem+json` response.
 
+## Grading
+
+From a fresh clone, install dependencies, start the development Compose stack, and export the tracked development database configuration. `SKIP_VAULT=1` tells the existing npm wrappers to use these injected values instead of trying to access the private Infisical project.
+
+```bash
+npm ci
+docker compose up -d --wait
+export DB_URL=postgresql://ticketing@127.0.0.1:5432/ticketing DB_PASSWORD_FILE=secrets/db_password.example
+export SKIP_VAULT=1 # the grader cannot access the private vault
+npm run migrate
+npm run seed
+npm run demo:nplus1
+npm run report
+```
+
 ## Local setup and startup
 
 ### Prerequisites
@@ -181,25 +196,60 @@ npm run test:contract
 
 ### Available npm scripts
 
-| Command                      | Purpose                                                        |
-| ---------------------------- | -------------------------------------------------------------- |
-| `npm run start:dev`          | Compile and run with automatic rebuilds on source changes.     |
-| `npm run build`              | Compile TypeScript into `dist/`.                               |
-| `npm run check:env`          | Verify that `.env.example` matches the Zod environment schema. |
-| `npm run format`             | Format supported project files with Prettier.                  |
-| `npm run format:check`       | Check formatting without changing files.                       |
-| `npm start`                  | Build and run the application without watch mode.              |
-| `npm run typecheck`          | Check TypeScript without emitting files.                       |
-| `npm run test:contract`      | Compile and run the contract tests.                            |
-| `npm run openapi:generate`   | Build and regenerate the YAML contract from Swagger metadata.  |
-| `npm run migration:generate` | Build and generate a migration from entity changes.            |
-| `npm run migration:show`     | Build and show applied and pending TypeORM migrations.         |
-| `npm run migration:run`      | Build and apply pending TypeORM migrations.                    |
-| `npm run migration:revert`   | Build and revert the latest applied TypeORM migration.         |
+| Command                    | Purpose                                                        |
+| -------------------------- | -------------------------------------------------------------- |
+| `npm run start:dev`        | Compile and run with automatic rebuilds on source changes.     |
+| `npm run build`            | Compile TypeScript into `dist/`.                               |
+| `npm run check:env`        | Verify that `.env.example` matches the Zod environment schema. |
+| `npm run format`           | Format supported project files with Prettier.                  |
+| `npm run format:check`     | Check formatting without changing files.                       |
+| `npm start`                | Build and run the application without watch mode.              |
+| `npm run typecheck`        | Check TypeScript without emitting files.                       |
+| `npm run test:contract`    | Compile and run the contract tests.                            |
+| `npm run openapi:generate` | Build and regenerate the YAML contract from Swagger metadata.  |
+| `npm run migrate:generate` | Build and generate a migration from entity changes.            |
+| `npm run migrate:show`     | Build and show applied and pending TypeORM migrations.         |
+| `npm run migrate`          | Build and apply pending TypeORM migrations.                    |
+| `npm run migrate:revert`   | Build and revert the latest applied TypeORM migration.         |
+| `npm run seed`             | Insert deterministic, idempotent development data.             |
+| `npm run demo:nplus1`      | Log and compare naive and optimized relation-loading queries.  |
+| `npm run report`           | Show successful payment revenue grouped by event and currency. |
 
 ## TypeORM and migrations
 
-The application and the TypeORM CLI share the `DataSource` configuration in `src/database`, including the password-file callback used for secret rotation. Schema synchronization is permanently disabled: database changes must be represented by versioned migrations, reviewed as SQL, and applied with `npm run migration:run`. Create entities first and then run `npm run migration:generate`; do not generate a migration while the entity list is incomplete, because TypeORM compares the entire mapped model with the current database schema.
+The application and the TypeORM CLI share `src/data-source.ts` and the connection options in `src/database`, including the password-file callback used for secret rotation. Schema synchronization is permanently disabled: database changes must be represented by versioned migrations, reviewed as SQL, and applied with `npm run migrate`. Create entities first and then run `npm run migrate:generate`; do not generate a migration while the entity list is incomplete, because TypeORM compares the entire mapped model with the current database schema.
+
+Install and authenticate the Infisical CLI before running database commands. `migrate*`, `seed`, `demo:nplus1`, and `report` invoke `scripts/with-secrets.sh dev` themselves, so Infisical injects the `dev` environment into the child process and no command prefix or local env file is required.
+
+In CI or the grader, set `SKIP_VAULT=1` after providing the required variables in the process environment; the same wrapper then executes the command directly without accessing Infisical.
+
+Run `npm run migrate` before `npm run seed`. The ORM seed inserts ten fixed rows into each domain table inside one transaction and ignores existing seed records, so repeated runs do not duplicate data or fail. It is intentionally separate from `db/seed.sql`, which creates the large benchmark dataset used for query-plan exercises.
+
+After running `npm run seed` twice, verify that the main table counts remain unchanged:
+
+```bash
+docker compose exec -T db psql -U ticketing -d ticketing -Atc "SELECT 'events=' || count(*) FROM events UNION ALL SELECT 'reservations=' || count(*) FROM reservations UNION ALL SELECT 'payments=' || count(*) FROM payments UNION ALL SELECT 'tickets=' || count(*) FROM tickets;"
+```
+
+### Relationship deletion policy
+
+Every domain foreign key uses `onDelete: 'RESTRICT'` deliberately: events, reservations, payments, and issued tickets form financial and admission history that must not disappear through a cascading parent deletion. Lifecycle changes are represented by statuses such as `cancelled`, `expired`, `refunded`, and `void`; `CASCADE` is reserved for future dependent records that have no meaning or audit value without their parent.
+
+### N+1 query demonstration
+
+Run `npm run migrate`, `npm run seed`, and then `npm run demo:nplus1` against the development database. The script enables TypeORM query logging and loads ten events with two relation levels, `Event -> TicketType -> Reservation`, first with repository calls inside loops and then with optimized relation-loading strategies.
+
+| Strategy                        | `N=5` | `N=10` |
+| ------------------------------- | ----: | -----: |
+| Naive queries in loops          |    11 |     21 |
+| `leftJoinAndSelect`             |     1 |      1 |
+| `relationLoadStrategy: 'query'` |     5 |      5 |
+
+The naive result grows as `1 + N + N`: one query for the event list, one ticket-type query per event, and one reservation query per ticket type in the deterministic seed. Increasing the collection from five to ten events leaves the optimized counts unchanged: `leftJoinAndSelect` returns the graph in one statement, while the query strategy batches each relation level and its relation mapping in five statements.
+
+### QueryBuilder vs Repository
+
+Run `npm run report` to calculate successful-payment revenue, reservation count, and sold-ticket quantity grouped by event and currency. The project uses Repository `find*` methods for entity reads that can be expressed with filters, ordering, pagination, and relation loading; it switches to QueryBuilder when a query needs aggregates, `GROUP BY`, computed columns, or explicit join control and therefore returns report rows rather than entities.
 
 ## Configuration
 

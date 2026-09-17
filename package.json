@@ -14,11 +14,13 @@
     "openapi:generate": "npm run build && node --env-file=.env.example dist/openapi/generate-openapi.js",
     "test:contract": "tsc && node --env-file=.env.example --test test/contract.test.mjs",
     "typecheck": "tsc --noEmit",
-    "typeorm": "node --env-file-if-exists=.env ./node_modules/typeorm/cli.js",
-    "migration:generate": "npm run build && npm run typeorm -- migration:generate src/database/migrations/Schema -d dist/database/data-source.js",
-    "migration:run": "npm run build && npm run typeorm -- migration:run -d dist/database/data-source.js",
-    "migration:show": "npm run build && npm run typeorm -- migration:show -d dist/database/data-source.js",
-    "migration:revert": "npm run build && npm run typeorm -- migration:revert -d dist/database/data-source.js"
+    "migrate:generate": "bash scripts/with-secrets.sh dev bash -c 'npm run build && node ./node_modules/typeorm/cli.js migration:generate -d dist/data-source.js src/migrations/Schema && npm run build'",
+    "migrate": "bash scripts/with-secrets.sh dev bash -c 'npm run build && node ./node_modules/typeorm/cli.js migration:run -d dist/data-source.js'",
+    "migrate:show": "bash scripts/with-secrets.sh dev bash -c 'npm run build && node ./node_modules/typeorm/cli.js migration:show -d dist/data-source.js'",
+    "migrate:revert": "bash scripts/with-secrets.sh dev bash -c 'npm run build && node ./node_modules/typeorm/cli.js migration:revert -d dist/data-source.js'",
+    "seed": "bash scripts/with-secrets.sh dev bash -c 'npm run build && node dist/seed.js'",
+    "demo:nplus1": "bash scripts/with-secrets.sh dev bash -c 'npm run build && node dist/demo-nplus1.js'",
+    "report": "bash scripts/with-secrets.sh dev bash -c 'npm run build && node dist/report.js'"
   },
   "dependencies": {
     "@nestjs/common": "12.0.1",

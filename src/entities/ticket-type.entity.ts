@@ -4,9 +4,15 @@ import {
   CreateDateColumn,
   Check,
   Unique,
-  PrimaryColumn,
+  PrimaryGeneratedColumn,
   UpdateDateColumn,
+  JoinColumn,
+  ManyToOne,
+  OneToMany,
 } from 'typeorm';
+import type { Relation } from 'typeorm';
+import { Reservation } from './reservation.entity.js';
+import { Event } from './event.entity.js';
 
 @Entity('ticket_types')
 @Unique('ticket_types_event_name_unique', ['eventId', 'name'])
@@ -23,15 +29,27 @@ import {
 @Check('ticket_types_price_non_negative', 'price >= 0')
 @Check('ticket_types_name_not_blank', "btrim(name) <> ''")
 export class TicketType {
-  @PrimaryColumn({
-    type: 'uuid',
-    default: () => 'gen_random_uuid()',
+  @PrimaryGeneratedColumn('uuid', {
     primaryKeyConstraintName: 'ticket_types_pkey',
   })
   declare id: string;
 
   @Column({ name: 'event_id', type: 'uuid' })
   declare eventId: string;
+
+  @ManyToOne(() => Event, (event) => event.ticketTypes, {
+    nullable: false,
+    onDelete: 'RESTRICT',
+  })
+  @JoinColumn({
+    name: 'event_id',
+    referencedColumnName: 'id',
+    foreignKeyConstraintName: 'ticket_types_event_fk',
+  })
+  declare event: Relation<Event>;
+
+  @OneToMany(() => Reservation, (reservation) => reservation.ticketType)
+  declare reservations: Relation<Reservation[]>;
 
   @Column({ name: 'name', type: 'varchar', length: 100 })
   declare name: string;

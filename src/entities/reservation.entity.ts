@@ -4,10 +4,18 @@ import {
   CreateDateColumn,
   Check,
   Unique,
-  PrimaryColumn,
+  PrimaryGeneratedColumn,
   UpdateDateColumn,
+  JoinColumn,
+  ManyToOne,
+  OneToMany,
 } from 'typeorm';
-import { ReservationStatus } from '../enums/reservation-status.enum.js';
+import type { Relation } from 'typeorm';
+import { ReservationStatus } from '../reservations/enums/reservation-status.enum.js';
+import { Payment } from './payment.entity.js';
+import { Ticket } from './ticket.entity.js';
+import { TicketType } from './ticket-type.entity.js';
+import { User } from './user.entity.js';
 
 @Entity('reservations')
 @Unique('reservations_id_ticket_type_unique', ['id', 'ticketTypeId'])
@@ -20,9 +28,7 @@ import { ReservationStatus } from '../enums/reservation-status.enum.js';
 @Check('reservations_unit_price_non_negative', 'unit_price >= 0')
 @Check('reservations_quantity_positive', 'quantity > 0')
 export class Reservation {
-  @PrimaryColumn({
-    type: 'uuid',
-    default: () => 'gen_random_uuid()',
+  @PrimaryGeneratedColumn('uuid', {
     primaryKeyConstraintName: 'reservations_pkey',
   })
   declare id: string;
@@ -30,8 +36,36 @@ export class Reservation {
   @Column({ name: 'user_id', type: 'uuid' })
   declare userId: string;
 
+  @ManyToOne(() => User, (user) => user.reservations, {
+    nullable: false,
+    onDelete: 'RESTRICT',
+  })
+  @JoinColumn({
+    name: 'user_id',
+    referencedColumnName: 'id',
+    foreignKeyConstraintName: 'reservations_user_fk',
+  })
+  declare user: Relation<User>;
+
   @Column({ name: 'ticket_type_id', type: 'uuid' })
   declare ticketTypeId: string;
+
+  @ManyToOne(() => TicketType, (ticketType) => ticketType.reservations, {
+    nullable: false,
+    onDelete: 'RESTRICT',
+  })
+  @JoinColumn({
+    name: 'ticket_type_id',
+    referencedColumnName: 'id',
+    foreignKeyConstraintName: 'reservations_ticket_type_fk',
+  })
+  declare ticketType: Relation<TicketType>;
+
+  @OneToMany(() => Payment, (payment) => payment.reservation)
+  declare payments: Relation<Payment[]>;
+
+  @OneToMany(() => Ticket, (ticket) => ticket.reservation)
+  declare tickets: Relation<Ticket[]>;
 
   @Column({ name: 'quantity', type: 'int' })
   declare quantity: number;

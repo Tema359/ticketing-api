@@ -4,13 +4,20 @@ import {
   CreateDateColumn,
   Check,
   Unique,
-  PrimaryColumn,
+  PrimaryGeneratedColumn,
   UpdateDateColumn,
   Index,
+  JoinColumn,
+  ManyToOne,
+  OneToMany,
 } from 'typeorm';
-import { PaymentStatus } from '../enums/payment-status.enum.js';
+import type { Relation } from 'typeorm';
+import { PaymentStatus } from '../payments/enums/payment-status.enum.js';
+import { Reservation } from './reservation.entity.js';
+import { Ticket } from './ticket.entity.js';
 
 @Entity('payments')
+@Index('payments_failed_created_at_idx', { synchronize: false })
 @Index('payments_one_success_per_reservation_idx', ['reservationId'], {
   unique: true,
   where: "status = 'succeeded'",
@@ -23,15 +30,27 @@ import { PaymentStatus } from '../enums/payment-status.enum.js';
 @Check('payments_amount_non_negative', 'amount >= 0')
 @Check('payments_provider_not_blank', "btrim(provider) <> ''")
 export class Payment {
-  @PrimaryColumn({
-    type: 'uuid',
-    default: () => 'gen_random_uuid()',
+  @PrimaryGeneratedColumn('uuid', {
     primaryKeyConstraintName: 'payments_pkey',
   })
   declare id: string;
 
   @Column({ name: 'reservation_id', type: 'uuid' })
   declare reservationId: string;
+
+  @ManyToOne(() => Reservation, (reservation) => reservation.payments, {
+    nullable: false,
+    onDelete: 'RESTRICT',
+  })
+  @JoinColumn({
+    name: 'reservation_id',
+    referencedColumnName: 'id',
+    foreignKeyConstraintName: 'payments_reservation_fk',
+  })
+  declare reservation: Relation<Reservation>;
+
+  @OneToMany(() => Ticket, (ticket) => ticket.payment)
+  declare tickets: Relation<Ticket[]>;
 
   @Column({ name: 'provider', type: 'varchar', length: 50 })
   declare provider: string;
