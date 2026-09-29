@@ -32,7 +32,7 @@ A `Reservation` temporarily holds a quantity of a selected ticket type for an at
 
 ### Payment
 
-A `Payment` records the financial transaction for a reservation and tracks its processing status. A successful payment confirms the reservation and authorizes the creation of the corresponding tickets.
+A `Payment` records the financial transaction for a reservation and tracks its processing status. A successful payment confirms the reservation and authorizes the creation of the corresponding tickets. All monetary values are stored as integers in the currency's minor units, so `10100` with currency `PLN` represents `101.00 PLN` without floating-point rounding.
 
 ### Ticket
 
@@ -77,7 +77,7 @@ From a fresh clone, install dependencies, start the development Compose stack, a
 
 ```bash
 npm ci
-docker compose up -d --wait
+docker compose up -d --wait db
 export DB_URL=postgresql://ticketing@127.0.0.1:5432/ticketing DB_PASSWORD_FILE=secrets/db_password.example
 export SKIP_VAULT=1 # the grader cannot access the private vault
 npm run migrate
@@ -242,10 +242,10 @@ Run `npm run migrate`, `npm run seed`, and then `npm run demo:nplus1` against th
 | Strategy                        | `N=5` | `N=10` |
 | ------------------------------- | ----: | -----: |
 | Naive queries in loops          |    11 |     21 |
-| `leftJoinAndSelect`             |     1 |      1 |
+| `leftJoinAndSelect` with `take` |     2 |      2 |
 | `relationLoadStrategy: 'query'` |     5 |      5 |
 
-The naive result grows as `1 + N + N`: one query for the event list, one ticket-type query per event, and one reservation query per ticket type in the deterministic seed. Increasing the collection from five to ten events leaves the optimized counts unchanged: `leftJoinAndSelect` returns the graph in one statement, while the query strategy batches each relation level and its relation mapping in five statements.
+The naive result grows as `1 + N + N`: one query for the event list, one ticket-type query per event, and one reservation query per ticket type in the deterministic seed. Increasing the collection from five to ten events leaves the optimized counts unchanged: `leftJoinAndSelect` with `take` uses one query for distinct root IDs and one for the complete graph, while the query strategy batches each relation level and its relation mapping in five statements. `take` is required here because SQL `LIMIT` would count joined rows rather than events and could return fewer root entities when an event has multiple ticket types or reservations.
 
 ### QueryBuilder vs Repository
 

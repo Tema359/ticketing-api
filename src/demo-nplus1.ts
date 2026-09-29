@@ -45,7 +45,7 @@ async function runDemo(): Promise<void> {
     const eventRepository = dataSource.getRepository(Event);
     const reservationRepository = dataSource.getRepository(Reservation);
 
-    const results: Array<{ strategy: string; queries: number }> = [];
+    const results: Array<{ strategy: string; events: number; queries: number }> = [];
 
     for (const limit of [5, 10]) {
       console.log(`\nNaive strategy (N=${limit}): relations loaded in loops`);
@@ -62,22 +62,30 @@ async function runDemo(): Promise<void> {
           await reservationRepository.findBy({ ticketTypeId: ticketType.id });
         }
       }
-      results.push({ strategy: `naive loop (N=${events.length})`, queries: logger.count });
+      results.push({
+        strategy: `naive loop (N=${events.length})`,
+        events: events.length,
+        queries: logger.count,
+      });
 
       console.log(`\nFixed strategy (N=${limit}): leftJoinAndSelect`);
       logger.reset();
-      await eventRepository
+      const joinedEvents = await eventRepository
         .createQueryBuilder('event')
         .leftJoinAndSelect('event.ticketTypes', 'ticketType')
         .leftJoinAndSelect('ticketType.reservations', 'reservation')
         .orderBy('event.id', 'ASC')
-        .limit(limit)
+        .take(limit)
         .getMany();
-      results.push({ strategy: `leftJoinAndSelect (N=${limit})`, queries: logger.count });
+      results.push({
+        strategy: `leftJoinAndSelect + take (N=${limit})`,
+        events: joinedEvents.length,
+        queries: logger.count,
+      });
 
       console.log(`\nAlternative strategy (N=${limit}): relationLoadStrategy = 'query'`);
       logger.reset();
-      await eventRepository.find({
+      const queriedEvents = await eventRepository.find({
         relations: {
           ticketTypes: {
             reservations: true,
@@ -89,6 +97,7 @@ async function runDemo(): Promise<void> {
       });
       results.push({
         strategy: `relationLoadStrategy: 'query' (N=${limit})`,
+        events: queriedEvents.length,
         queries: logger.count,
       });
     }

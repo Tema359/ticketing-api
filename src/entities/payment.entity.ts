@@ -58,12 +58,8 @@ export class Payment {
   @Column({ name: 'provider_payment_id', type: 'varchar', length: 255, nullable: true })
   declare providerPaymentId: string | null;
 
-  @Column({
-    type: 'numeric',
-    precision: 12,
-    scale: 2,
-  })
-  declare amount: string;
+  @Column({ type: 'integer' })
+  declare amount: number;
 
   @Column({ name: 'currency', type: 'varchar', length: 3 })
   declare currency: string;

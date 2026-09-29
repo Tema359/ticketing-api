@@ -70,13 +70,8 @@ export class Reservation {
   @Column({ name: 'quantity', type: 'int' })
   declare quantity: number;
 
-  @Column({
-    name: 'unit_price',
-    type: 'numeric',
-    precision: 12,
-    scale: 2,
-  })
-  declare unitPrice: string;
+  @Column({ name: 'unit_price', type: 'integer' })
+  declare unitPrice: number;
 
   @Column({ name: 'currency', type: 'varchar', length: 3 })
   declare currency: string;

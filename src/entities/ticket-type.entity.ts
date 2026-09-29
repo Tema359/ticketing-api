@@ -54,13 +54,8 @@ export class TicketType {
   @Column({ name: 'name', type: 'varchar', length: 100 })
   declare name: string;
 
-  @Column({
-    name: 'price',
-    type: 'numeric',
-    precision: 12,
-    scale: 2,
-  })
-  declare price: string;
+  @Column({ name: 'price', type: 'integer' })
+  declare price: number;
 
   @Column({ name: 'currency', type: 'varchar', length: 3 })
   declare currency: string;

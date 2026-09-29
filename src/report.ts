@@ -11,7 +11,7 @@ interface EventRevenueRow {
   currency: string;
   reservations_count: number;
   tickets_sold: number;
-  revenue: string;
+  revenue_minor: string;
 }
 
 const dataSource = new DataSource(createTypeOrmOptions(readEnvironment()));
@@ -31,7 +31,7 @@ async function runRevenueReport(): Promise<void> {
       .addSelect('payment.currency', 'currency')
       .addSelect('COUNT(DISTINCT reservation.id)::int', 'reservations_count')
       .addSelect('SUM(reservation.quantity)::int', 'tickets_sold')
-      .addSelect('SUM(payment.amount)', 'revenue')
+      .addSelect('SUM(payment.amount)', 'revenue_minor')
       .where('payment.status = :status', { status: PaymentStatus.SUCCEEDED })
       .groupBy('event.id')
       .addGroupBy('event.title')
