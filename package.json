@@ -13,7 +13,14 @@
     "format:check": "prettier --check .",
     "openapi:generate": "npm run build && node --env-file=.env.example dist/openapi/generate-openapi.js",
     "test:contract": "tsc && node --env-file=.env.example --test test/contract.test.mjs",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "migrate:generate": "bash scripts/with-secrets.sh dev bash -c 'npm run build && node ./node_modules/typeorm/cli.js migration:generate -d dist/data-source.js src/migrations/Schema && npm run build'",
+    "migrate": "bash scripts/with-secrets.sh dev bash -c 'npm run build && node ./node_modules/typeorm/cli.js migration:run -d dist/data-source.js'",
+    "migrate:show": "bash scripts/with-secrets.sh dev bash -c 'npm run build && node ./node_modules/typeorm/cli.js migration:show -d dist/data-source.js'",
+    "migrate:revert": "bash scripts/with-secrets.sh dev bash -c 'npm run build && node ./node_modules/typeorm/cli.js migration:revert -d dist/data-source.js'",
+    "seed": "bash scripts/with-secrets.sh dev bash -c 'npm run build && node dist/seed.js'",
+    "demo:nplus1": "bash scripts/with-secrets.sh dev bash -c 'npm run build && node dist/demo-nplus1.js'",
+    "report": "bash scripts/with-secrets.sh dev bash -c 'npm run build && node dist/report.js'"
   },
   "dependencies": {
     "@nestjs/common": "12.0.1",
@@ -21,12 +28,14 @@
     "@nestjs/core": "12.0.1",
     "@nestjs/platform-express": "12.0.1",
     "@nestjs/swagger": "12.0.1",
+    "@nestjs/typeorm": "12.0.1",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
     "express-openapi-validator": "5.6.2",
     "pg": "^8.23.0",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",
+    "typeorm": "0.3.31",
     "zod": "^4.5.4"
   },
   "devDependencies": {

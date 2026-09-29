@@ -118,9 +118,9 @@ SELECT
 FROM numbered_events AS event
 CROSS JOIN (
     VALUES
-        ('Standard', 49.00::numeric(12, 2), 5_000),
-        ('Premium', 99.00::numeric(12, 2), 1_500),
-        ('VIP', 199.00::numeric(12, 2), 300)
+        ('Standard', 4_900, 5_000),
+        ('Premium', 9_900, 1_500),
+        ('VIP', 19_900, 300)
 ) AS tier(name, price, inventory_total);
 
 -- Reservations are the main workload table. The status split is intentionally skewed:

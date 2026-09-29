@@ -26,3 +26,7 @@ export function validate(config: Record<string, unknown>): Env {
 
   return result.data;
 }
+
+export function readEnvironment(): Env {
+  return validate(process.env);
+}
