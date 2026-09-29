@@ -221,3 +221,5 @@ docker inspect --format 'restart-count={{.RestartCount}}' ticketing-api-api-1
 ```
 
 The second health request must return `200`, and the restart count must remain `0`. Do not replace the password file manually for an initialized database; use `rotate.sh` so the database role and file stay synchronized.
+
+## Pooling, replicas, sharding, backups і disaster recovery
